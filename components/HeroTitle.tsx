@@ -1,6 +1,6 @@
 export default function HeroTitle() {
   return (
-    <h1 className="animate-hero-title max-w-4xl text-5xl font-extrabold leading-none tracking-tight sm:text-7xl md:text-8xl lg:text-9xl">
+    <h1 className="animate-hero-title w-full max-w-5xl px-1 text-[clamp(4.25rem,18vw,7.5rem)] font-extrabold leading-[0.88] tracking-tight sm:text-9xl sm:leading-none md:text-[10rem] lg:text-[11rem]">
       <span className="hero-shimmer-letter" aria-hidden="false">
         N
       </span>

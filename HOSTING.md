@@ -110,7 +110,14 @@ If Git asks for login, use GitHub username + **Personal Access Token** (not pass
 3. Select repository: `nayan-dashboard`
 4. Netlify reads `netlify.toml` automatically:
    - **Build command:** `npm run build`
-   - **Publish:** handled by Next.js plugin
+   - **Publish directory:** leave **blank** (the Next.js plugin sets this — do not use `/` or repo root)
+
+**Important — Build settings (fix “publish directory cannot be the same as base directory”):**
+
+1. **Site configuration → Build & deploy → Continuous deployment → Build settings → Edit settings**
+2. **Publish directory:** clear the field completely (empty), then **Save**
+3. **Build command:** should be `npm run build` (or leave empty to use `netlify.toml`)
+4. Do **not** set Publish to `.`, `/`, or the repo folder name
 
 ### 3.3 Environment variables — connect MongoDB Atlas (required)
 
@@ -220,6 +227,11 @@ Netlify auto-rebuilds in 2–3 minutes.
 ### Build failed on Netlify
 - Open **Deploy log** and read the red error line
 - Common fix: ensure `package.json` and `netlify.toml` are pushed to GitHub
+
+### “Your publish directory cannot be the same as the base directory”
+- **Cause:** Netlify UI has **Publish directory** set to the repo root (shows as `publish: /opt/build/repo` in the deploy log).
+- **Fix:** **Site configuration → Build & deploy → Build settings → Edit** → **clear Publish directory** (leave empty) → Save → **Trigger deploy**.
+- Do **not** add `publish = "."` to `netlify.toml` for this Next.js app — `@netlify/plugin-nextjs` manages output.
 
 ### "Cannot connect to MongoDB" / Sign up fails
 - Check `MONGODB_URI` in Netlify env variables (no spaces, password URL-encoded if it has `@#` etc.)

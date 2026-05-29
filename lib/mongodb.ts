@@ -1,12 +1,6 @@
 import mongoose from "mongoose";
 import { resolveMongoUri } from "@/lib/mongodb-uri";
 
-const MONGODB_URI = process.env.MONGODB_URI!;
-
-if (!MONGODB_URI) {
-  throw new Error("Please define MONGODB_URI in .env.local");
-}
-
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -27,13 +21,20 @@ if (!global.mongooseCache) {
 }
 
 async function dbConnect() {
+  const mongodbUri = process.env.MONGODB_URI;
+  if (!mongodbUri) {
+    throw new Error(
+      "Please define MONGODB_URI in .env.local (local) or Netlify environment variables (production)"
+    );
+  }
+
   if (cached.conn) {
     return cached.conn;
   }
 
   if (!cached.promise) {
     cached.promise = (async () => {
-      const uri = await resolveMongoUri(MONGODB_URI);
+      const uri = await resolveMongoUri(mongodbUri);
       return mongoose.connect(uri);
     })().catch((err) => {
       cached.promise = null;

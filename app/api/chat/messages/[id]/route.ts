@@ -63,7 +63,7 @@ export async function DELETE(req: Request, context: RouteContext) {
     return NextResponse.json({ success: true, mode: "everyone" });
   }
 
-  if (!message.hiddenFor.some((uid) => uid.equals(me))) {
+  if (!message.hiddenFor.some((uid: mongoose.Types.ObjectId) => uid.equals(me))) {
     message.hiddenFor.push(me);
     await message.save();
   }

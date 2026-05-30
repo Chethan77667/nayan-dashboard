@@ -1,7 +1,5 @@
 "use client";
 
-import Image from "next/image";
-
 export default function ChatImageViewer({
   src,
   onClose,
@@ -12,7 +10,13 @@ export default function ChatImageViewer({
   const download = () => {
     const a = document.createElement("a");
     a.href = src;
-    a.download = src.split("/").pop() ?? "image.jpg";
+    a.download = src.startsWith("data:")
+      ? "nayan-chat-photo.jpg"
+      : (src.split("/").pop() ?? "image.jpg");
+    if (src.startsWith("data:")) {
+      a.click();
+      return;
+    }
     a.target = "_blank";
     a.rel = "noopener noreferrer";
     a.click();
@@ -46,14 +50,13 @@ export default function ChatImageViewer({
           Download
         </button>
       </header>
-      <div className="relative flex flex-1 items-center justify-center p-4">
-        <Image
+      <div className="flex flex-1 items-center justify-center overflow-auto p-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src={src}
           alt="Chat image"
-          fill
-          className="object-contain"
-          unoptimized
-          sizes="100vw"
+          className="max-h-[85dvh] max-w-full object-contain"
+          decoding="async"
         />
       </div>
     </div>

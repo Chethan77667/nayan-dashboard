@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import { signToken } from "@/lib/auth";
+import { recordAuthEvent } from "@/lib/auth-events";
 
 export async function POST(req: Request) {
   try {
@@ -36,6 +37,8 @@ export async function POST(req: Request) {
       id: user._id.toString(),
       role: user.role,
     });
+
+    await recordAuthEvent("login", user._id.toString(), req);
 
     const response = NextResponse.json({
       success: true,

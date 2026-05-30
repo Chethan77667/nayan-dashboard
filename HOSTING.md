@@ -243,8 +243,8 @@ Netlify auto-rebuilds in 2–3 minutes.
 - Clear browser cookies for the site and try again
 
 ### Image upload does not show on live site
-- Netlify serverless storage is temporary. Text and amounts still work.
-- For permanent images, use Cloudinary later (optional upgrade).
+- New uploads are stored in MongoDB (data URLs) and work on Netlify.
+- Photos uploaded **before** this change (paths like `/uploads/...`) will not load on the hosted site — send the photo again.
 
 ### Password special characters in MongoDB URI
 If password has `@`, `#`, `%`, encode them:

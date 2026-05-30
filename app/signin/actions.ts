@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import { signToken } from "@/lib/auth";
+import { recordAuthEvent } from "@/lib/auth-events";
 
 export type SigninState = {
   error?: string;
@@ -50,6 +51,8 @@ export async function signinAction(
       maxAge: 60 * 60 * 24 * 7,
       path: "/",
     });
+
+    await recordAuthEvent("login", user._id.toString());
 
     destination =
       user.role === "admin" ? "/admin/dashboard" : "/dashboard";

@@ -1,11 +1,11 @@
-import DashboardLayout from "@/components/DashboardLayout";
+import ChatFullScreenShell from "@/components/chat/ChatFullScreenShell";
 import WhatsAppChatApp from "@/components/chat/WhatsAppChatApp";
-import { Suspense } from "react";
 import { displayUserName } from "@/lib/branding";
 import dbConnect from "@/lib/mongodb";
 import { getSession } from "@/lib/auth";
 import User from "@/models/User";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 export default async function ChatPage() {
   const session = await getSession();
@@ -15,34 +15,28 @@ export default async function ChatPage() {
   const user = await User.findById(session.id).select("-password");
   if (!user) redirect("/signin");
 
-  const isAdmin = user.role === "admin";
-  const dashboardHref = isAdmin ? "/admin/dashboard" : "/dashboard";
-  const chatHref = isAdmin ? "/admin/chat" : "/chat";
-
-  const links = isAdmin
-    ? [
-        { href: "/admin/dashboard", label: "Owner dashboard" },
-        { href: chatHref, label: "WhatsApp" },
-      ]
-    : [
-        { href: "/dashboard", label: "Dashboard" },
-        { href: chatHref, label: "WhatsApp" },
-      ];
+  const dashboardHref =
+    user.role === "admin" ? "/admin/dashboard" : "/dashboard";
 
   return (
-    <DashboardLayout
+    <ChatFullScreenShell
       userName={displayUserName(user.name, user.role)}
       role={user.role}
-      links={links}
+      dashboardHref={dashboardHref}
     >
-      <div className="-mx-4 -mt-2 flex min-h-0 flex-1 flex-col sm:-mx-6 md:-mx-8 lg:-mt-4">
-        <Suspense fallback={<p className="text-slate-600">Loading chat...</p>}>
-          <WhatsAppChatApp
-            currentUserName={user.name}
-            backHref={dashboardHref}
-          />
-        </Suspense>
-      </div>
-    </DashboardLayout>
+      <Suspense
+        fallback={
+          <p className="flex flex-1 items-center justify-center text-white/80">
+            Loading chat...
+          </p>
+        }
+      >
+        <WhatsAppChatApp
+          fullScreen
+          currentUserName={user.name}
+          backHref={dashboardHref}
+        />
+      </Suspense>
+    </ChatFullScreenShell>
   );
 }

@@ -16,6 +16,8 @@ interface DailyFinanceTrackerProps {
   backHref?: string;
   backLabel?: string;
   showPageBack?: boolean;
+  /** Admin viewing a user's accounts (not shown on normal user dashboard). */
+  ownerView?: boolean;
 }
 
 export default function DailyFinanceTracker({
@@ -25,6 +27,7 @@ export default function DailyFinanceTracker({
   backHref = "/admin/dashboard",
   backLabel = "Back to dashboard",
   showPageBack = false,
+  ownerView = false,
 }: DailyFinanceTrackerProps) {
   const [data, setData] = useState<DailyData | null>(null);
   const [selectedDate, setSelectedDate] = useState("");
@@ -106,7 +109,11 @@ export default function DailyFinanceTracker({
             <h1 className="text-lg font-bold text-slate-900 sm:text-xl">
               {readOnly ? userName : `Hi, ${userName}`}
             </h1>
-            <p className="text-sm font-medium text-slate-600">Daily accounts</p>
+            <p className="text-sm font-medium text-slate-600">
+              {ownerView
+                ? "Owner view — read only. Use Activity log tab for login & entry history."
+                : "Tap Incoming or Outgoing to add your amounts for the day."}
+            </p>
           </div>
         </div>
         <DatePickerChip
@@ -204,9 +211,9 @@ export default function DailyFinanceTracker({
         </p>
       </div>
 
-      {!canEdit && (
+      {ownerView && !canEdit && (
         <p className="rounded-xl border-2 border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
-          View only — admin cannot edit entries.
+          Owner view — you cannot edit this user&apos;s entries here.
         </p>
       )}
 

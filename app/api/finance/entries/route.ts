@@ -6,6 +6,7 @@ import { parseAmount } from "@/lib/currency";
 import { serializeTransaction } from "@/lib/finance";
 import Transaction from "@/models/Transaction";
 import { saveEntryImage } from "@/lib/upload";
+import { logFinanceAudit } from "@/lib/finance-audit";
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -51,6 +52,18 @@ export async function POST(req: Request) {
       amount,
       reason: reason.trim(),
       imageUrl,
+    });
+
+    await logFinanceAudit({
+      userId: session.id,
+      transactionId: entry._id.toString(),
+      action: "create",
+      entryType: type,
+      amount,
+      reason: reason.trim(),
+      date,
+      performedBy: session.id,
+      performedByRole: session.role === "admin" ? "admin" : "user",
     });
 
     return NextResponse.json({

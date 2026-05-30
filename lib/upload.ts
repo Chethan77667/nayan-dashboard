@@ -1,30 +1,23 @@
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
-
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-const MAX_SIZE = 5 * 1024 * 1024;
+/** Stored in MongoDB as data URL — works on Netlify (no disk). */
+const MAX_BYTES = 2_500_000;
 
+/**
+ * Converts an uploaded image to a data URL stored in the database.
+ * Netlify/serverless has no persistent filesystem; local disk paths break in production.
+ */
 export async function saveEntryImage(
-  userId: string,
+  _userId: string,
   file: File
 ): Promise<string> {
   if (!ALLOWED_TYPES.includes(file.type)) {
     throw new Error("Only JPEG, PNG, WebP, or GIF images are allowed");
   }
-  if (file.size > MAX_SIZE) {
-    throw new Error("Image must be under 5MB");
+  if (file.size > MAX_BYTES) {
+    throw new Error("Image must be under 2.5MB — try a smaller photo");
   }
 
-  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-  const safeExt = ["jpg", "jpeg", "png", "webp", "gif"].includes(ext)
-    ? ext
-    : "jpg";
-  const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
-  const dir = path.join(process.cwd(), "public", "uploads", userId);
-  await mkdir(dir, { recursive: true });
-
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(dir, filename), buffer);
-
-  return `/uploads/${userId}/${filename}`;
+  const mime = file.type || "image/jpeg";
+  return `data:${mime};base64,${buffer.toString("base64")}`;
 }

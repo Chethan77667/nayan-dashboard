@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import CachedChatImage from "./CachedChatImage";
 import MessageTicks from "./MessageTicks";
 import ChatMessageBody from "./ChatMessageBody";
 import { useLongPress } from "./useLongPress";
@@ -50,12 +50,11 @@ export default function ChatMessageBubble({
             className="block w-full overflow-hidden rounded-t-lg"
           >
             <div className="relative h-48 w-full min-w-[200px] sm:h-56">
-              <Image
+              <CachedChatImage
+                messageId={msg.id}
                 src={msg.imageUrl}
                 alt="Shared image"
-                fill
-                className="object-cover"
-                unoptimized
+                className="h-48 w-full min-w-[200px] object-cover sm:h-56"
               />
             </div>
           </button>

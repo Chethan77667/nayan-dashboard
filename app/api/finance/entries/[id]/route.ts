@@ -6,6 +6,7 @@ import { parseAmount } from "@/lib/currency";
 import { serializeTransaction } from "@/lib/finance";
 import Transaction from "@/models/Transaction";
 import { saveEntryImage } from "@/lib/upload";
+import { logFinanceAudit } from "@/lib/finance-audit";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -54,6 +55,18 @@ export async function PUT(req: Request, context: RouteContext) {
 
     await entry.save();
 
+    await logFinanceAudit({
+      userId: session.id,
+      transactionId: entry._id.toString(),
+      action: "update",
+      entryType: entry.type as "incoming" | "outgoing",
+      amount: entry.amount,
+      reason: entry.reason,
+      date: entry.date,
+      performedBy: session.id,
+      performedByRole: session.role === "admin" ? "admin" : "user",
+    });
+
     return NextResponse.json({
       success: true,
       entry: serializeTransaction(entry),
@@ -74,11 +87,25 @@ export async function DELETE(_req: Request, context: RouteContext) {
   const { id } = await context.params;
 
   await dbConnect();
-  const result = await Transaction.deleteOne({ _id: id, userId: session.id });
+  const entry = await Transaction.findOne({ _id: id, userId: session.id });
 
-  if (result.deletedCount === 0) {
+  if (!entry) {
     return NextResponse.json({ message: "Entry not found" }, { status: 404 });
   }
+
+  await logFinanceAudit({
+    userId: session.id,
+    transactionId: entry._id.toString(),
+    action: "delete",
+    entryType: entry.type as "incoming" | "outgoing",
+    amount: entry.amount,
+    reason: entry.reason,
+    date: entry.date,
+    performedBy: session.id,
+    performedByRole: session.role === "admin" ? "admin" : "user",
+  });
+
+  await Transaction.deleteOne({ _id: id, userId: session.id });
 
   return NextResponse.json({ success: true });
 }

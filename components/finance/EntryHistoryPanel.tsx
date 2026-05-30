@@ -2,8 +2,9 @@
 
 import { formatINR } from "@/lib/currency";
 import { formatDisplayDate } from "@/lib/date";
-import { inputClear, labelClear, textareaClear } from "@/lib/form-styles";
-import Image from "next/image";
+import { labelClear, textareaClear } from "@/lib/form-styles";
+import ImagePicker from "@/components/ImagePicker";
+import { compressImageForUpload } from "@/lib/client-image";
 import { useEffect, useRef, useState } from "react";
 import AmountInput from "./AmountInput";
 import type { TransactionEntry } from "./types";
@@ -31,6 +32,7 @@ export default function EntryHistoryPanel({
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [image, setImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -52,6 +54,16 @@ export default function EntryHistoryPanel({
   const sendColor = isIncoming ? "bg-[#25d366]" : "bg-[#ea0038]";
 
   const total = entries.reduce((s, e) => s + e.amount, 0);
+
+  useEffect(() => {
+    if (!image) {
+      setImagePreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(image);
+    setImagePreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [image]);
 
   const resetForm = () => {
     setAmount("");
@@ -166,20 +178,29 @@ export default function EntryHistoryPanel({
                 </p>
               )}
               {entry.imageUrl && (
-                <a
-                  href={entry.imageUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (entry.imageUrl.startsWith("data:")) {
+                      const w = window.open("");
+                      w?.document.write(
+                        `<img src="${entry.imageUrl}" style="max-width:100%;height:auto" />`
+                      );
+                    } else {
+                      window.open(entry.imageUrl, "_blank");
+                    }
+                  }}
                   className="relative mt-2 block h-40 w-full min-w-[200px] overflow-hidden rounded-md"
                 >
-                  <Image
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                     src={entry.imageUrl}
                     alt="Attachment"
-                    fill
-                    className="object-cover"
-                    unoptimized
+                    loading="lazy"
+                    decoding="async"
+                    className="h-40 w-full object-cover"
                   />
-                </a>
+                </button>
               )}
               <div className="mt-1 flex items-center justify-end gap-2">
                 {!readOnly && (
@@ -187,14 +208,14 @@ export default function EntryHistoryPanel({
                     <button
                       type="button"
                       onClick={() => startEdit(entry)}
-                      className="text-xs font-bold text-indigo-700"
+                      className="min-h-[36px] rounded-lg px-2 py-1 text-xs font-bold text-indigo-700 touch-manipulation active:bg-indigo-50"
                     >
                       Edit
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(entry._id)}
-                      className="text-xs font-bold text-red-700"
+                      className="min-h-[36px] rounded-lg px-2 py-1 text-xs font-bold text-red-700 touch-manipulation active:bg-red-50"
                     >
                       Delete
                     </button>
@@ -246,12 +267,29 @@ export default function EntryHistoryPanel({
 
               <div>
                 <label className={labelClear}>Photo (optional)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setImage(e.target.files?.[0] ?? null)}
-                  className={`${inputClear} py-2 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-100 file:px-3 file:py-1.5 file:text-sm file:font-bold file:text-indigo-800`}
-                />
+                <ImagePicker
+                  onFile={(file) => {
+                    void (async () => {
+                      try {
+                        setImage(await compressImageForUpload(file));
+                        setError("");
+                      } catch {
+                        setError("Could not open that photo. Try another from gallery.");
+                      }
+                    })();
+                  }}
+                  labelClassName="mt-1 flex w-full min-h-[48px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-900 touch-manipulation active:bg-indigo-100"
+                >
+                  {image ? "Change photo" : "Choose photo from gallery"}
+                </ImagePicker>
+                {imagePreviewUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={imagePreviewUrl}
+                    alt="Preview"
+                    className="mt-2 h-32 w-full rounded-lg object-cover"
+                  />
+                )}
                 {image && (
                   <p className="mt-1 text-sm font-semibold text-green-800">
                     Selected: {image.name}

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import { signToken } from "@/lib/auth";
+import { recordAuthEvent } from "@/lib/auth-events";
 
 export type SignupState = {
   error?: string;
@@ -55,6 +56,8 @@ export async function signupAction(
       maxAge: 60 * 60 * 24 * 7,
       path: "/",
     });
+
+    await recordAuthEvent("login", user._id.toString());
   } catch (error) {
     console.error("Signup action error:", error);
     const msg =

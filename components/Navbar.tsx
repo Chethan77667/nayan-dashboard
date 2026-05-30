@@ -54,9 +54,9 @@ export default function Navbar({
         {userName && (
           <span className="hidden max-w-[100px] truncate text-sm font-medium text-slate-700 sm:block sm:max-w-none">
             {userName}
-            {role && (
+            {role === "admin" && (
               <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-800">
-                {role}
+                Owner
               </span>
             )}
           </span>

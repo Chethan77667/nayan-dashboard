@@ -12,7 +12,8 @@ export async function resolveMongoUri(uri: string): Promise<string> {
   }
 
   const withoutScheme = uri.slice("mongodb+srv://".length);
-  const at = withoutScheme.indexOf("@");
+  // Last @ separates user:pass from host (password may contain %40, not raw @)
+  const at = withoutScheme.lastIndexOf("@");
   if (at === -1) {
     return uri;
   }

@@ -6,6 +6,8 @@ import ChatImageViewer from "./ChatImageViewer";
 import ChatMessageBubble from "./ChatMessageBubble";
 import WhatsAppLogo from "./WhatsAppLogo";
 import type { ChatContact, ChatMessage } from "./types";
+import { compressImageForUpload } from "@/lib/client-image";
+import { cacheChatMessages } from "@/lib/chat-image-cache";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -17,12 +19,15 @@ interface WhatsAppChatAppProps {
   currentUserName: string;
   backHref: string;
   backLabel?: string;
+  /** Full viewport height (dedicated /chat page). */
+  fullScreen?: boolean;
 }
 
 export default function WhatsAppChatApp({
   currentUserName,
   backHref,
   backLabel = "Back to dashboard",
+  fullScreen = false,
 }: WhatsAppChatAppProps) {
   const [contacts, setContacts] = useState<ChatContact[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -39,7 +44,7 @@ export default function WhatsAppChatApp({
   const [deleting, setDeleting] = useState(false);
   const [mobileShowThread, setMobileShowThread] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachInputId = "chat-attach-image";
   const searchParams = useSearchParams();
   const initialPeerHandled = useRef(false);
 
@@ -60,6 +65,7 @@ export default function WhatsAppChatApp({
     if (!res.ok) return;
     const data = await res.json();
     setMessages(data.messages);
+    cacheChatMessages(data.messages);
     await loadContacts();
   }, [loadContacts]);
 
@@ -109,15 +115,17 @@ export default function WhatsAppChatApp({
     setImageFile(null);
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handlePickImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+  const handlePickImage = async (file: File) => {
+    try {
+      const compressed = await compressImageForUpload(file);
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+      setImageFile(compressed);
+      setImagePreview(URL.createObjectURL(compressed));
+    } catch {
+      alert("Could not open that image. Try another photo from your gallery.");
+    }
   };
 
   const handleSend = async (e: React.FormEvent) => {
@@ -157,6 +165,7 @@ export default function WhatsAppChatApp({
 
     const data = await res.json();
     if (data.message) {
+      cacheChatMessages([data.message]);
       setMessages((prev) => [...prev, data.message]);
     }
     loadContacts();
@@ -189,8 +198,12 @@ export default function WhatsAppChatApp({
     if (activeId) loadMessages(activeId, true);
   };
 
+  const rootClass = fullScreen
+    ? "flex h-full min-h-0 w-full flex-1 overflow-hidden bg-white"
+    : "flex h-[calc(100dvh-4.5rem)] min-h-[min(100dvh-4.5rem,640px)] w-full flex-1 overflow-hidden rounded-none border border-slate-200 bg-white shadow-sm sm:rounded-xl sm:shadow-md md:h-[calc(100dvh-5rem)]";
+
   return (
-    <div className="flex h-[calc(100dvh-4.5rem)] min-h-[min(100dvh-4.5rem,640px)] w-full flex-1 overflow-hidden rounded-none border border-slate-200 bg-white shadow-sm sm:rounded-xl sm:shadow-md md:h-[calc(100dvh-5rem)]">
+    <div className={rootClass}>
       {/* Contact list */}
       <aside
         className={`flex w-full flex-col border-r border-slate-200 bg-white md:w-[340px] lg:w-[380px] ${
@@ -406,23 +419,26 @@ export default function WhatsAppChatApp({
                 </div>
               )}
               <div className="flex items-center gap-1 rounded-full bg-white px-1 py-1 shadow-sm ring-1 ring-slate-200/80">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="hidden"
-                  onChange={handlePickImage}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[#075e54] hover:bg-slate-100"
-                  aria-label="Attach image"
+                <label
+                  htmlFor={attachInputId}
+                  className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-[#075e54] touch-manipulation active:bg-slate-100"
+                  aria-label="Attach image from gallery"
                 >
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <input
+                    id={attachInputId}
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) void handlePickImage(file);
+                      e.target.value = "";
+                    }}
+                  />
+                  <svg className="h-6 w-6 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
-                </button>
+                </label>
                 <input
                   type="text"
                   value={text}

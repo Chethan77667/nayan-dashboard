@@ -49,7 +49,7 @@ export default function AdminFinanceOverview() {
         href={`/admin/users/${u.id}?date=${date}`}
         className="text-sm font-bold text-indigo-700 hover:underline"
       >
-        View history
+        View user
       </Link>
       <Link
         href={`/chat?peer=${u.id}`}

@@ -1,5 +1,7 @@
 "use client";
 
+import { downloadImage } from "@/lib/download-image";
+
 export default function ChatImageViewer({
   src,
   onClose,
@@ -8,18 +10,10 @@ export default function ChatImageViewer({
   onClose: () => void;
 }) {
   const download = () => {
-    const a = document.createElement("a");
-    a.href = src;
-    a.download = src.startsWith("data:")
-      ? "nayan-chat-photo.jpg"
-      : (src.split("/").pop() ?? "image.jpg");
-    if (src.startsWith("data:")) {
-      a.click();
-      return;
-    }
-    a.target = "_blank";
-    a.rel = "noopener noreferrer";
-    a.click();
+    void downloadImage(
+      src,
+      src.startsWith("data:") ? "nayan-chat-photo.jpg" : (src.split("/").pop() ?? "image.jpg")
+    );
   };
 
   return (

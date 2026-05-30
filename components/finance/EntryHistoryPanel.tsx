@@ -4,8 +4,10 @@ import { formatINR } from "@/lib/currency";
 import { formatDisplayDate } from "@/lib/date";
 import { labelClear, textareaClear } from "@/lib/form-styles";
 import MobileFileInput from "@/components/MobileFileInput";
+import ChatImageViewer from "@/components/chat/ChatImageViewer";
+import { useMobileBackStack } from "@/components/useMobileBackStack";
 import { compressImageForUpload } from "@/lib/client-image";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AmountInput from "./AmountInput";
 import type { TransactionEntry } from "./types";
 
@@ -37,7 +39,27 @@ export default function EntryHistoryPanel({
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showComposer, setShowComposer] = useState(false);
+  const [viewerImage, setViewerImage] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const resetForm = useCallback(() => {
+    setAmount("");
+    setReason("");
+    setImage(null);
+    setEditingId(null);
+    setError("");
+    setShowComposer(false);
+  }, []);
+
+  const dismissPanel = useMobileBackStack(true, onClose);
+  const dismissComposer = useMobileBackStack(showComposer && !viewerImage, resetForm);
+  const dismissViewer = useMobileBackStack(!!viewerImage, () => setViewerImage(null));
+
+  const handleHeaderBack = () => {
+    if (viewerImage) dismissViewer();
+    else if (showComposer) dismissComposer();
+    else dismissPanel();
+  };
 
   useEffect(() => {
     setEntries(initialEntries.filter((e) => e.type === type));
@@ -64,15 +86,6 @@ export default function EntryHistoryPanel({
     setImagePreviewUrl(url);
     return () => URL.revokeObjectURL(url);
   }, [image]);
-
-  const resetForm = () => {
-    setAmount("");
-    setReason("");
-    setImage(null);
-    setEditingId(null);
-    setError("");
-    setShowComposer(false);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,8 +114,8 @@ export default function EntryHistoryPanel({
       return;
     }
 
-    resetForm();
     onSaved();
+    dismissComposer();
   };
 
   const startEdit = (entry: TransactionEntry) => {
@@ -120,13 +133,13 @@ export default function EntryHistoryPanel({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#e5ddd5]">
+    <div className="fixed inset-0 z-50 flex h-dvh max-h-dvh flex-col overflow-hidden bg-[#e5ddd5]">
       {/* WhatsApp-style header */}
       <header className={`flex shrink-0 items-center gap-3 px-2 py-3 text-white shadow-md ${headerColor}`}>
         <button
           type="button"
-          onClick={onClose}
-          className="flex min-w-0 items-center gap-1 rounded-lg px-1 py-2 hover:bg-white/10"
+          onClick={handleHeaderBack}
+          className="flex min-h-[44px] min-w-[44px] items-center gap-1 rounded-lg px-1 py-2 touch-manipulation hover:bg-white/10 active:bg-white/20"
           aria-label={backLabel}
         >
           <svg className="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -148,7 +161,9 @@ export default function EntryHistoryPanel({
       {/* Chat area */}
       <div
         data-lenis-prevent
-        className="flex-1 overflow-y-auto overscroll-contain px-3 py-4"
+        className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 ${
+          showComposer ? "max-h-[32dvh] sm:max-h-none" : ""
+        }`}
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8c4bc' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
         }}
@@ -180,17 +195,9 @@ export default function EntryHistoryPanel({
               {entry.imageUrl && (
                 <button
                   type="button"
-                  onClick={() => {
-                    if (entry.imageUrl.startsWith("data:")) {
-                      const w = window.open("");
-                      w?.document.write(
-                        `<img src="${entry.imageUrl}" style="max-width:100%;height:auto" />`
-                      );
-                    } else {
-                      window.open(entry.imageUrl, "_blank");
-                    }
-                  }}
-                  className="relative mt-2 block h-40 w-full min-w-[200px] overflow-hidden rounded-md"
+                  onClick={() => setViewerImage(entry.imageUrl)}
+                  className="relative mt-2 block w-full min-w-[200px] touch-manipulation overflow-hidden rounded-md"
+                  aria-label="View image and download"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -236,77 +243,99 @@ export default function EntryHistoryPanel({
 
       {/* Composer */}
       {!readOnly && (
-        <div className="safe-bottom relative z-30 shrink-0 border-t border-slate-300/50 bg-[#f0f0f0] p-2">
+        <div
+          className={`safe-bottom relative z-30 shrink-0 border-t border-slate-300/50 bg-[#f0f0f0] p-2 ${
+            showComposer ? "flex min-h-0 max-h-[68dvh] flex-col" : ""
+          }`}
+        >
           {showComposer ? (
-            <form onSubmit={handleSubmit} className="space-y-2 rounded-xl bg-white p-3 shadow-lg">
-              <p className="text-sm font-bold text-slate-900">
-                {editingId ? "Edit message" : `New ${title.toLowerCase()} entry`}
-              </p>
-              {error && (
-                <p className="rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-800">
-                  {error}
+            <form
+              onSubmit={handleSubmit}
+              className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl bg-white shadow-lg"
+            >
+              <div
+                data-lenis-prevent
+                className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain p-3"
+              >
+                <p className="text-sm font-bold text-slate-900">
+                  {editingId ? "Edit message" : `New ${title.toLowerCase()} entry`}
                 </p>
-              )}
-
-              <AmountInput
-                value={amount}
-                onChange={setAmount}
-                accent={isIncoming ? "green" : "red"}
-              />
-
-              <div>
-                <label className={labelClear}>Reason</label>
-                <textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  rows={2}
-                  className={textareaClear}
-                  placeholder="Write reason here..."
-                />
-              </div>
-
-              <div className="relative z-20">
-                <p className={labelClear}>Photo (optional)</p>
-                <MobileFileInput
-                  label={image ? "Change photo" : "Choose photo from gallery"}
-                  onFile={(file) => {
-                    void (async () => {
-                      try {
-                        setImage(await compressImageForUpload(file));
-                        setError("");
-                      } catch {
-                        setError("Could not open that photo. Try another from gallery.");
-                      }
-                    })();
-                  }}
-                />
-                {imagePreviewUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={imagePreviewUrl}
-                    alt="Preview"
-                    className="mt-2 h-32 w-full rounded-lg object-cover"
-                  />
-                )}
-                {image && (
-                  <p className="mt-1 text-sm font-semibold text-green-800">
-                    Selected: {image.name}
+                {error && (
+                  <p className="rounded-lg bg-red-100 px-3 py-2 text-sm font-semibold text-red-800">
+                    {error}
                   </p>
                 )}
+
+                <AmountInput
+                  value={amount}
+                  onChange={setAmount}
+                  accent={isIncoming ? "green" : "red"}
+                />
+
+                <div>
+                  <label className={labelClear}>Reason</label>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    rows={2}
+                    className={textareaClear}
+                    placeholder="Write reason here..."
+                  />
+                </div>
+
+                <div className="relative z-20">
+                  <p className={labelClear}>Photo (optional)</p>
+                  <MobileFileInput
+                    label={image ? "Change photo" : "Choose photo from gallery"}
+                    onFile={(file) => {
+                      void (async () => {
+                        try {
+                          setImage(await compressImageForUpload(file));
+                          setError("");
+                        } catch {
+                          setError("Could not open that photo. Try another from gallery.");
+                        }
+                      })();
+                    }}
+                  />
+                  {imagePreviewUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setViewerImage(imagePreviewUrl)}
+                      className="relative mt-2 block w-full touch-manipulation"
+                      aria-label="View full image"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imagePreviewUrl}
+                        alt="Preview"
+                        className="max-h-36 w-full rounded-lg object-cover"
+                      />
+                      <span className="mt-1 block text-center text-xs font-semibold text-indigo-700">
+                        Tap to view · download
+                      </span>
+                    </button>
+                  )}
+                  {image && (
+                    <p className="mt-1 truncate text-sm font-semibold text-green-800">
+                      Selected: {image.name}
+                    </p>
+                  )}
+                </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex shrink-0 gap-2 border-t border-slate-200 bg-white p-3">
                 <button
                   type="button"
-                  onClick={resetForm}
-                  className="flex-1 rounded-full border-2 border-slate-300 py-3 text-sm font-bold text-slate-800"
+                  onClick={dismissComposer}
+                  className="flex-1 rounded-full border-2 border-slate-300 py-3 text-sm font-bold text-slate-800 touch-manipulation"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={loading}
-                  className={`flex-1 rounded-full py-3 text-sm font-bold text-white disabled:opacity-60 ${sendColor}`}
+                  disabled={loading || !amount.trim()}
+                  className={`flex-1 rounded-full py-3 text-sm font-bold text-white touch-manipulation disabled:opacity-60 ${sendColor}`}
                 >
                   {loading ? "Sending..." : editingId ? "Update" : "Send"}
                 </button>
@@ -334,6 +363,9 @@ export default function EntryHistoryPanel({
             </div>
           )}
         </div>
+      )}
+      {viewerImage && (
+        <ChatImageViewer src={viewerImage} onClose={dismissViewer} />
       )}
     </div>
   );

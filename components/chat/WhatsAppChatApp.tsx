@@ -417,12 +417,19 @@ export default function WhatsAppChatApp({
               </p>
               {imagePreview && (
                 <div className="mb-2 flex items-center gap-2 rounded-lg bg-white p-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imagePreview}
-                    alt="Preview"
-                    className="h-14 w-14 rounded-lg object-cover"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setViewerImage(imagePreview)}
+                    className="shrink-0 touch-manipulation"
+                    aria-label="View image full size"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="h-14 w-14 rounded-lg object-cover"
+                    />
+                  </button>
                   <p className="min-w-0 flex-1 truncate text-sm text-slate-700">
                     {imageFile?.name}
                   </p>

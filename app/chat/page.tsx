@@ -1,6 +1,4 @@
-import ChatFullScreenShell from "@/components/chat/ChatFullScreenShell";
 import WhatsAppChatApp from "@/components/chat/WhatsAppChatApp";
-import { displayUserName } from "@/lib/branding";
 import dbConnect from "@/lib/mongodb";
 import { getSession } from "@/lib/auth";
 import User from "@/models/User";
@@ -19,24 +17,18 @@ export default async function ChatPage() {
     user.role === "admin" ? "/admin/dashboard" : "/dashboard";
 
   return (
-    <ChatFullScreenShell
-      userName={displayUserName(user.name, user.role)}
-      role={user.role}
-      dashboardHref={dashboardHref}
+    <Suspense
+      fallback={
+        <div className="fixed inset-0 flex items-center justify-center bg-[#111b21] text-white/80">
+          Loading chat...
+        </div>
+      }
     >
-      <Suspense
-        fallback={
-          <p className="flex flex-1 items-center justify-center text-white/80">
-            Loading chat...
-          </p>
-        }
-      >
-        <WhatsAppChatApp
-          fullScreen
-          currentUserName={user.name}
-          backHref={dashboardHref}
-        />
-      </Suspense>
-    </ChatFullScreenShell>
+      <WhatsAppChatApp
+        fullScreen
+        currentUserName={user.name}
+        backHref={dashboardHref}
+      />
+    </Suspense>
   );
 }

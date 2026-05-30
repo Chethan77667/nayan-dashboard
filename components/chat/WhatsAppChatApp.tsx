@@ -9,7 +9,7 @@ import type { ChatContact, ChatMessage } from "./types";
 import { compressImageForUpload } from "@/lib/client-image";
 import { cacheChatMessages } from "@/lib/chat-image-cache";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const CHAT_BG = `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c8c4bc' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`;
 
@@ -29,6 +29,7 @@ export default function WhatsAppChatApp({
   backLabel = "Back to dashboard",
   fullScreen = false,
 }: WhatsAppChatAppProps) {
+  const router = useRouter();
   const [contacts, setContacts] = useState<ChatContact[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -199,22 +200,32 @@ export default function WhatsAppChatApp({
   };
 
   const rootClass = fullScreen
-    ? "flex h-full min-h-0 w-full flex-1 overflow-hidden bg-white"
+    ? "fixed inset-0 z-50 flex min-h-0 w-full overflow-hidden bg-white"
     : "flex h-[calc(100dvh-4.5rem)] min-h-[min(100dvh-4.5rem,640px)] w-full flex-1 overflow-hidden rounded-none border border-slate-200 bg-white shadow-sm sm:rounded-xl sm:shadow-md md:h-[calc(100dvh-5rem)]";
+
+  const handleSignOut = async () => {
+    await fetch("/api/auth/signout", { method: "POST" });
+    router.push("/signin");
+    router.refresh();
+  };
+
+  const listHeaderClass = fullScreen
+    ? "safe-top shrink-0 bg-[#075e54] px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] text-white shadow-sm"
+    : "shrink-0 bg-[#075e54] px-3 py-3 text-white shadow-sm";
 
   return (
     <div className={rootClass}>
       {/* Contact list */}
       <aside
-        className={`flex w-full flex-col border-r border-slate-200 bg-white md:w-[340px] lg:w-[380px] ${
+        className={`flex min-h-0 w-full flex-col border-r border-slate-200 bg-white md:w-[340px] lg:w-[380px] ${
           mobileShowThread ? "hidden md:flex" : "flex"
         }`}
       >
-        <header className="shrink-0 bg-[#075e54] px-3 py-3 text-white shadow-sm">
+        <header className={listHeaderClass}>
           <div className="flex items-center gap-3">
             <a
               href={backHref}
-              className="rounded-lg p-1 hover:bg-white/10 md:hidden"
+              className={`rounded-lg p-1 hover:bg-white/10 ${fullScreen ? "" : "md:hidden"}`}
               aria-label={backLabel}
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -228,6 +239,15 @@ export default function WhatsAppChatApp({
                 {currentUserName}
               </p>
             </div>
+            {fullScreen && (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="shrink-0 rounded-lg px-2 py-1 text-xs font-bold text-white/90 hover:bg-white/10"
+              >
+                Sign out
+              </button>
+            )}
           </div>
         </header>
 

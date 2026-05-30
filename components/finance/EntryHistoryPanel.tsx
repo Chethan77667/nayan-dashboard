@@ -3,7 +3,6 @@
 import { formatINR } from "@/lib/currency";
 import { formatDisplayDate } from "@/lib/date";
 import { labelClear, textareaClear } from "@/lib/form-styles";
-import ImagePicker from "@/components/ImagePicker";
 import { compressImageForUpload } from "@/lib/client-image";
 import { useEffect, useRef, useState } from "react";
 import AmountInput from "./AmountInput";
@@ -117,6 +116,20 @@ export default function EntryHistoryPanel({
     if (!confirm("Delete this entry?")) return;
     await fetch(`/api/finance/entries/${id}`, { method: "DELETE" });
     onSaved();
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    void (async () => {
+      try {
+        setImage(await compressImageForUpload(file));
+        setError("");
+      } catch {
+        setError("Could not open that photo. Try another from gallery.");
+      }
+    })();
+    e.target.value = "";
   };
 
   return (
@@ -266,22 +279,16 @@ export default function EntryHistoryPanel({
               </div>
 
               <div>
-                <label className={labelClear}>Photo (optional)</label>
-                <ImagePicker
-                  onFile={(file) => {
-                    void (async () => {
-                      try {
-                        setImage(await compressImageForUpload(file));
-                        setError("");
-                      } catch {
-                        setError("Could not open that photo. Try another from gallery.");
-                      }
-                    })();
-                  }}
-                  labelClassName="mt-1 flex w-full min-h-[48px] cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50 px-4 py-3 text-sm font-bold text-indigo-900 touch-manipulation active:bg-indigo-100"
-                >
-                  {image ? "Change photo" : "Choose photo from gallery"}
-                </ImagePicker>
+                <label className={labelClear} htmlFor="entry-photo">
+                  Photo (optional)
+                </label>
+                <input
+                  id="entry-photo"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="mt-1 block w-full min-h-[48px] cursor-pointer rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50 px-3 py-3 text-sm font-medium text-indigo-900 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:font-bold file:text-white touch-manipulation"
+                />
                 {imagePreviewUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img

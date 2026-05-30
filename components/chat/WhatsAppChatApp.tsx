@@ -6,6 +6,7 @@ import ChatImageViewer from "./ChatImageViewer";
 import ChatMessageBubble from "./ChatMessageBubble";
 import WhatsAppLogo from "./WhatsAppLogo";
 import type { ChatContact, ChatMessage } from "./types";
+import ImagePickerTrigger from "@/components/ImagePickerTrigger";
 import { compressImageForUpload } from "@/lib/client-image";
 import { cacheChatMessages } from "@/lib/chat-image-cache";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -438,24 +439,17 @@ export default function WhatsAppChatApp({
                 </div>
               )}
               <div className="flex items-center gap-1 rounded-full bg-white px-1 py-1 shadow-sm ring-1 ring-slate-200/80">
-                <label className="relative flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full text-[#075e54] touch-manipulation active:bg-slate-100">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    aria-label="Attach image from gallery"
-                    className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-[0.01]"
-                    style={{ fontSize: 16 }}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) void handlePickImage(file);
-                      e.target.value = "";
-                    }}
-                  />
+                <ImagePickerTrigger
+                  onFile={(file) => void handlePickImage(file)}
+                  aria-label="Attach image from gallery"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#075e54] touch-manipulation active:bg-slate-100"
+                >
                   <svg
-                    className="pointer-events-none h-6 w-6"
+                    className="h-6 w-6"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
+                    aria-hidden
                   >
                     <path
                       strokeLinecap="round"
@@ -464,7 +458,7 @@ export default function WhatsAppChatApp({
                       d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"
                     />
                   </svg>
-                </label>
+                </ImagePickerTrigger>
                 <input
                   type="text"
                   value={text}

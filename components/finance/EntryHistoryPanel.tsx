@@ -268,7 +268,6 @@ export default function EntryHistoryPanel({
               <div className="relative z-20">
                 <p className={labelClear}>Photo (optional)</p>
                 <MobileFileInput
-                  id="entry-photo"
                   label={image ? "Change photo" : "Choose photo from gallery"}
                   onFile={(file) => {
                     void (async () => {

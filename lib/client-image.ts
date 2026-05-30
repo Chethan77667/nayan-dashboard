@@ -15,21 +15,45 @@ export async function compressImageForUpload(
     return file;
   }
 
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, maxWidth / bitmap.width, maxHeight / bitmap.height);
-  const width = Math.max(1, Math.round(bitmap.width * scale));
-  const height = Math.max(1, Math.round(bitmap.height * scale));
+  let sourceWidth: number;
+  let sourceHeight: number;
+  let draw: (ctx: CanvasRenderingContext2D, w: number, h: number) => void;
+  let cleanup = () => {};
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    sourceWidth = bitmap.width;
+    sourceHeight = bitmap.height;
+    draw = (ctx, w, h) => ctx.drawImage(bitmap, 0, 0, w, h);
+    cleanup = () => bitmap.close();
+  } catch {
+    const url = URL.createObjectURL(file);
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("Could not load image"));
+      el.src = url;
+    });
+    sourceWidth = img.naturalWidth;
+    sourceHeight = img.naturalHeight;
+    draw = (ctx, w, h) => ctx.drawImage(img, 0, 0, w, h);
+    cleanup = () => URL.revokeObjectURL(url);
+  }
+
+  const scale = Math.min(1, maxWidth / sourceWidth, maxHeight / sourceHeight);
+  const width = Math.max(1, Math.round(sourceWidth * scale));
+  const height = Math.max(1, Math.round(sourceHeight * scale));
 
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) {
-    bitmap.close();
+    cleanup();
     throw new Error("Could not process image");
   }
-  ctx.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close();
+  draw(ctx, width, height);
+  cleanup();
 
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(

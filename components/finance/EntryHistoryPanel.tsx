@@ -3,6 +3,7 @@
 import { formatINR } from "@/lib/currency";
 import { formatDisplayDate } from "@/lib/date";
 import { labelClear, textareaClear } from "@/lib/form-styles";
+import MobileFileInput from "@/components/MobileFileInput";
 import { compressImageForUpload } from "@/lib/client-image";
 import { useEffect, useRef, useState } from "react";
 import AmountInput from "./AmountInput";
@@ -116,20 +117,6 @@ export default function EntryHistoryPanel({
     if (!confirm("Delete this entry?")) return;
     await fetch(`/api/finance/entries/${id}`, { method: "DELETE" });
     onSaved();
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    void (async () => {
-      try {
-        setImage(await compressImageForUpload(file));
-        setError("");
-      } catch {
-        setError("Could not open that photo. Try another from gallery.");
-      }
-    })();
-    e.target.value = "";
   };
 
   return (
@@ -249,7 +236,7 @@ export default function EntryHistoryPanel({
 
       {/* Composer */}
       {!readOnly && (
-        <div data-lenis-prevent className="safe-bottom shrink-0 border-t border-slate-300/50 bg-[#f0f0f0] p-2">
+        <div className="safe-bottom relative z-30 shrink-0 border-t border-slate-300/50 bg-[#f0f0f0] p-2">
           {showComposer ? (
             <form onSubmit={handleSubmit} className="space-y-2 rounded-xl bg-white p-3 shadow-lg">
               <p className="text-sm font-bold text-slate-900">
@@ -278,16 +265,21 @@ export default function EntryHistoryPanel({
                 />
               </div>
 
-              <div>
-                <label className={labelClear} htmlFor="entry-photo">
-                  Photo (optional)
-                </label>
-                <input
+              <div className="relative z-20">
+                <p className={labelClear}>Photo (optional)</p>
+                <MobileFileInput
                   id="entry-photo"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="mt-1 block w-full min-h-[48px] cursor-pointer rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50 px-3 py-3 text-sm font-medium text-indigo-900 file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:font-bold file:text-white touch-manipulation"
+                  label={image ? "Change photo" : "Choose photo from gallery"}
+                  onFile={(file) => {
+                    void (async () => {
+                      try {
+                        setImage(await compressImageForUpload(file));
+                        setError("");
+                      } catch {
+                        setError("Could not open that photo. Try another from gallery.");
+                      }
+                    })();
+                  }}
                 />
                 {imagePreviewUrl && (
                   // eslint-disable-next-line @next/next/no-img-element

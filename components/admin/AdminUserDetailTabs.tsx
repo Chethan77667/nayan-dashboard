@@ -1,8 +1,9 @@
 "use client";
 
 import DailyFinanceTracker from "@/components/finance/DailyFinanceTracker";
+import { useHorizontalSwipe } from "@/components/useHorizontalSwipe";
 import UserTrackingPanel from "./UserTrackingPanel";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type AdminUserDetailTabsProps = {
   userId: string;
@@ -10,12 +11,24 @@ type AdminUserDetailTabsProps = {
   userEmail: string;
 };
 
+type Tab = "accounts" | "activity";
+
 export default function AdminUserDetailTabs({
   userId,
   userName,
   userEmail,
 }: AdminUserDetailTabsProps) {
-  const [tab, setTab] = useState<"accounts" | "activity">("accounts");
+  const [tab, setTab] = useState<Tab>("accounts");
+  const [activityReady, setActivityReady] = useState(false);
+
+  useEffect(() => {
+    if (tab === "activity") setActivityReady(true);
+  }, [tab]);
+
+  const swipe = useHorizontalSwipe({
+    onSwipeLeft: () => setTab((t) => (t === "accounts" ? "activity" : t)),
+    onSwipeRight: () => setTab((t) => (t === "activity" ? "accounts" : t)),
+  });
 
   return (
     <div className="space-y-4">
@@ -54,18 +67,59 @@ export default function AdminUserDetailTabs({
         </button>
       </div>
 
-      {tab === "accounts" && (
-        <DailyFinanceTracker
-          userName={userName}
-          readOnly
-          adminUserId={userId}
-          backHref="/admin/dashboard"
-          backLabel="Back to dashboard"
-          ownerView
+      <div className="flex items-center justify-center gap-2 md:hidden" aria-hidden>
+        <span
+          className={`h-1.5 rounded-full transition-all ${
+            tab === "accounts" ? "w-7 bg-indigo-600" : "w-2 bg-indigo-300"
+          }`}
         />
-      )}
+        <span
+          className={`h-1.5 rounded-full transition-all ${
+            tab === "activity" ? "w-7 bg-indigo-600" : "w-2 bg-indigo-300"
+          }`}
+        />
+      </div>
 
-      {tab === "activity" && <UserTrackingPanel userId={userId} />}
+      <p className="text-center text-xs font-medium text-indigo-600 md:hidden">
+        {tab === "accounts"
+          ? "Swipe left for Activity log"
+          : "Swipe right for Daily accounts"}
+      </p>
+
+      <div
+        className="touch-pan-y overflow-hidden max-md:overflow-hidden"
+        onTouchStart={swipe.onTouchStart}
+        onTouchEnd={swipe.onTouchEnd}
+      >
+        <div
+          className={`flex transition-transform duration-300 ease-out max-md:w-[200%] md:w-full md:transform-none ${
+            tab === "accounts" ? "translate-x-0" : "-translate-x-1/2 md:translate-x-0"
+          }`}
+        >
+          <div
+            className={`min-w-0 max-md:w-1/2 max-md:pr-1 md:w-full ${
+              tab === "accounts" ? "" : "md:hidden"
+            }`}
+          >
+            <DailyFinanceTracker
+              userName={userName}
+              readOnly
+              adminUserId={userId}
+              backHref="/admin/dashboard"
+              backLabel="Back to dashboard"
+              ownerView
+            />
+          </div>
+
+          <div
+            className={`min-w-0 max-md:w-1/2 max-md:pl-1 md:w-full ${
+              tab === "activity" ? "" : "md:hidden"
+            }`}
+          >
+            {activityReady && <UserTrackingPanel userId={userId} />}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

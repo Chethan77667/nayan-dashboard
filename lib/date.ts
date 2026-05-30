@@ -38,3 +38,11 @@ export function isValidDateKey(key: string): boolean {
     dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d
   );
 }
+
+/** Start/end of a calendar day in IST (matches toDateKey). */
+export function getIstDayBounds(dateKey: string): { start: Date; end: Date } {
+  return {
+    start: new Date(`${dateKey}T00:00:00.000+05:30`),
+    end: new Date(`${dateKey}T23:59:59.999+05:30`),
+  };
+}
